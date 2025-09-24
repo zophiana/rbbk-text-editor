@@ -1,9 +1,10 @@
 import "./App.css";
 import { open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 
 function App() {
-  const [fileName, setFileName] = useState("Some text");
+  const [fileContent, setFileContent] = useState("Some text");
   return (
     <main className="w-screen h-screen">
       <button
@@ -18,7 +19,12 @@ function App() {
               },
             ],
           });
-          setFileName(file);
+          if (!file) return;
+
+          const contents = await readFile(file);
+          const decoder = new TextDecoder("utf-8");
+          const string = decoder.decode(contents);
+          setFileContent(string);
         }}
       >
         Open file
@@ -27,8 +33,8 @@ function App() {
         name="text-editor"
         id="text-editor"
         className="size-full resize-none border-none font-mono focus:outline-none"
-        value={fileName}
-        onChange={(event) => setFileName(event.target.value)}
+        value={fileContent}
+        onChange={(event) => setFileContent(event.target.value)}
       ></textarea>
     </main>
   );
