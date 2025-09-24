@@ -6,33 +6,35 @@ import { useState } from "react";
 function App() {
   const [fileContent, setFileContent] = useState("Some text");
   return (
-    <main className="w-screen h-screen">
-      <button
-        onClick={async () => {
-          const file = await open({
-            multiple: false,
-            directory: false,
-            filters: [
-              {
-                name: "Text Files",
-                extensions: ["txt", "md"],
-              },
-            ],
-          });
-          if (!file) return;
+    <main className="w-screen h-screen flex flex-col">
+      <div>
+        <button
+          onClick={async () => {
+            const file = await open({
+              multiple: false,
+              directory: false,
+              filters: [
+                {
+                  name: "Text Files",
+                  extensions: ["txt", "md"],
+                },
+              ],
+            });
+            if (!file) return;
 
-          const contents = await readFile(file);
-          const decoder = new TextDecoder("utf-8");
-          const string = decoder.decode(contents);
-          setFileContent(string);
-        }}
-      >
-        Open file
-      </button>
+            const contents = await readFile(file);
+            const decoder = new TextDecoder("utf-8");
+            const string = decoder.decode(contents);
+            setFileContent(string);
+          }}
+        >
+          Open file
+        </button>
+      </div>
       <textarea
         name="text-editor"
         id="text-editor"
-        className="size-full resize-none border-none font-mono focus:outline-none"
+        className="w-full grow resize-none border-none font-mono focus:outline-none"
         value={fileContent}
         onChange={(event) => setFileContent(event.target.value)}
       ></textarea>
