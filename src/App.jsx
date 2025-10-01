@@ -3,10 +3,12 @@ import { exit } from "@tauri-apps/plugin-process";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
+import InfoDialog from "./components/InfoDialog";
 
 function App() {
   const [fileContent, setFileContent] = useState("Some text");
   const [activeMenu, setActiveMenu] = useState(null);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
 
   const handleNewFile = () => {
     setFileContent("");
@@ -35,6 +37,15 @@ function App() {
 
   const handleExit = async () => {
     await exit(0);
+  };
+
+  const handleShowInfo = () => {
+    setShowInfoDialog(true);
+    setActiveMenu(null);
+  };
+
+  const handleCloseInfo = () => {
+    setShowInfoDialog(false);
   };
 
   return (
@@ -75,6 +86,26 @@ function App() {
             </div>
           )}
         </div>
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="hover:bg-stone-300 px-2 py-1 flex items-center"
+            onClick={() =>
+              setActiveMenu(activeMenu === "hilfe" ? null : "hilfe")
+            }
+          >
+            Hilfe
+          </button>
+          {activeMenu === "hilfe" && (
+            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-32">
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={handleShowInfo}
+              >
+                Info
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <textarea
         name="text-editor"
@@ -83,6 +114,8 @@ function App() {
         value={fileContent}
         onChange={(event) => setFileContent(event.target.value)}
       ></textarea>
+
+      <InfoDialog open={showInfoDialog} onClose={handleCloseInfo} />
     </main>
   );
 }
