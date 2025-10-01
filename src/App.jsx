@@ -5,32 +5,75 @@ import { useState } from "react";
 
 function App() {
   const [fileContent, setFileContent] = useState("Some text");
-  return (
-    <main className="w-screen h-screen flex flex-col">
-      <div className="bg-stone-200 border-b-1 border-stone-300 text-sm">
-        <button
-          className="hover:bg-white p-1"
-          onClick={async () => {
-            const file = await open({
-              multiple: false,
-              directory: false,
-              filters: [
-                {
-                  name: "Text Files",
-                  extensions: ["txt", "md"],
-                },
-              ],
-            });
-            if (!file) return;
+  const [activeMenu, setActiveMenu] = useState(null);
 
-            const contents = await readFile(file);
-            const decoder = new TextDecoder("utf-8");
-            const string = decoder.decode(contents);
-            setFileContent(string);
-          }}
-        >
-          Open file
-        </button>
+  const handleNewFile = () => {
+    setFileContent("");
+    setActiveMenu(null);
+  };
+
+  const handleOpenFile = async () => {
+    const file = await open({
+      multiple: false,
+      directory: false,
+      filters: [
+        {
+          name: "Text Files",
+          extensions: ["txt", "md"],
+        },
+      ],
+    });
+    if (!file) return;
+
+    const contents = await readFile(file);
+    const decoder = new TextDecoder("utf-8");
+    const string = decoder.decode(contents);
+    setFileContent(string);
+    setActiveMenu(null);
+  };
+
+  const handleExit = async () => {
+    window.close();
+  };
+
+  return (
+    <main
+      className="w-screen h-screen flex flex-col"
+      onClick={() => setActiveMenu(null)}
+    >
+      <div className="bg-stone-200 border-b border-stone-300 text-sm flex">
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="hover:bg-stone-300 px-2 py-1 flex items-center"
+            onClick={() =>
+              setActiveMenu(activeMenu === "datei" ? null : "datei")
+            }
+          >
+            Datei
+          </button>
+          {activeMenu === "datei" && (
+            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-32">
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={handleNewFile}
+              >
+                Neu
+              </button>
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={handleOpenFile}
+              >
+                Datei öffnen
+              </button>
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={handleExit}
+              >
+                Beenden
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <textarea
         name="text-editor"
