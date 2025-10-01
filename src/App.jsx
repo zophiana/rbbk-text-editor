@@ -7,8 +7,9 @@ function App() {
   const [fileContent, setFileContent] = useState("Some text");
   return (
     <main className="w-screen h-screen flex flex-col">
-      <div>
+      <div className="bg-stone-200 border-b-1 border-stone-300 text-sm">
         <button
+          className="hover:bg-white p-1"
           onClick={async () => {
             const file = await open({
               multiple: false,
