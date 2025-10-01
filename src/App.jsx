@@ -1,4 +1,5 @@
 import "./App.css";
+import { exit } from "@tauri-apps/plugin-process";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
@@ -33,7 +34,7 @@ function App() {
   };
 
   const handleExit = async () => {
-    window.close();
+    await exit(0);
   };
 
   return (
