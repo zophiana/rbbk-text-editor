@@ -7,8 +7,8 @@ import InfoDialog from "./components/InfoDialog";
 
 const fileFilters = [
   {
-    name: "Text Files",
-    extensions: ["txt", "md"],
+    name: ".txt, .csv, .java",
+    extensions: ["txt", "csv", "java"],
   },
 ];
 
