@@ -1,9 +1,16 @@
 import "./App.css";
 import { exit } from "@tauri-apps/plugin-process";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState, useEffect } from "react";
 import InfoDialog from "./components/InfoDialog";
+
+const fileFilters = [
+  {
+    name: "Text Files",
+    extensions: ["txt", "md"],
+  },
+];
 
 function App() {
   const [fileContent, setFileContent] = useState("Some text");
@@ -21,12 +28,7 @@ function App() {
     const file = await open({
       multiple: false,
       directory: false,
-      filters: [
-        {
-          name: "Text Files",
-          extensions: ["txt", "md"],
-        },
-      ],
+      filters: fileFilters,
     });
     if (!file) return;
 
@@ -42,6 +44,19 @@ function App() {
     if (!filePath) return;
 
     await writeTextFile(filePath, fileContent);
+    setActiveMenu(null);
+  };
+
+  const handleSaveFileAs = async () => {
+    const file = await save({
+      multiple: false,
+      directory: false,
+      filters: fileFilters,
+    });
+    if (!file) return;
+
+    await writeTextFile(file, fileContent);
+    setFilePath(file);
     setActiveMenu(null);
   };
 
@@ -107,6 +122,12 @@ function App() {
                 onClick={handleSaveFile}
               >
                 Speichern
+              </button>
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={handleSaveFileAs}
+              >
+                Speichern unter
               </button>
               <button
                 className="block w-full text-left px-2 py-1 hover:bg-stone-100"
