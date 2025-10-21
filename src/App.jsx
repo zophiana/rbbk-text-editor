@@ -2,7 +2,7 @@ import "./App.css";
 import { exit } from "@tauri-apps/plugin-process";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import InfoDialog from "./components/InfoDialog";
 
 function App() {
@@ -58,6 +58,21 @@ function App() {
     setShowInfoDialog(false);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "o") {
+        event.preventDefault();
+        handleOpenFile();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   return (
     <main
       className="w-screen h-screen flex flex-col"
@@ -85,7 +100,7 @@ function App() {
                 className="block w-full text-left px-2 py-1 hover:bg-stone-100"
                 onClick={handleOpenFile}
               >
-                Datei öffnen
+                Laden
               </button>
               <button
                 className="block w-full text-left px-2 py-1 hover:bg-stone-100"
