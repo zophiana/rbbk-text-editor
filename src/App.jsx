@@ -165,7 +165,7 @@ function App() {
       <textarea
         name="text-editor"
         id="text-editor"
-        className="w-full grow resize-none border-none font-mono focus:outline-none"
+        className="w-full grow resize-none border-none font-mono focus:outline-none bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
         value={fileContent}
         onChange={(event) => setFileContent(event.target.value)}
       ></textarea>
