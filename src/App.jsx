@@ -2,8 +2,9 @@ import "./App.css";
 import { exit } from "@tauri-apps/plugin-process";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import InfoDialog from "./components/InfoDialog";
+import { useCursorPosition } from "./hooks";
 
 const fileFilters = [
   {
@@ -17,6 +18,12 @@ function App() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [filePath, setFilePath] = useState(undefined);
+  const textAreaRef = useRef(null);
+  const [
+    cursorPosition,
+    inputValues,
+    { setInputRow, setInputChar, validateAndSetRow, validateAndSetChar },
+  ] = useCursorPosition(textAreaRef, fileContent);
 
   const handleNewFile = () => {
     setFileContent("");
@@ -74,6 +81,22 @@ function App() {
 
   const handleCloseInfo = () => {
     setShowInfoDialog(false);
+  };
+
+  const handleRowChange = (event) => {
+    setInputRow(event.target.value);
+  };
+
+  const handleCharChange = (event) => {
+    setInputChar(event.target.value);
+  };
+
+  const handleRowBlur = () => {
+    validateAndSetRow(inputValues.inputRow);
+  };
+
+  const handleCharBlur = () => {
+    validateAndSetChar(inputValues.inputChar);
   };
 
   useEffect(() => {
@@ -163,12 +186,44 @@ function App() {
         </div>
       </div>
       <textarea
+        ref={textAreaRef}
         name="text-editor"
         id="text-editor"
         className="w-full grow resize-none border-none font-mono focus:outline-none bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
         value={fileContent}
         onChange={(event) => setFileContent(event.target.value)}
       ></textarea>
+
+      <div className="bg-stone-200 border-t border-stone-300 text-sm flex items-center px-2 py-1 gap-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="cursor-row" className="text-stone-600">
+            Row:
+          </label>
+          <input
+            id="cursor-row"
+            type="number"
+            min="1"
+            value={inputValues.inputRow}
+            onChange={handleRowChange}
+            onBlur={handleRowBlur}
+            className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="cursor-char" className="text-stone-600">
+            Char:
+          </label>
+          <input
+            id="cursor-char"
+            type="number"
+            min="1"
+            value={inputValues.inputChar}
+            onChange={handleCharChange}
+            onBlur={handleCharBlur}
+            className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+        </div>
+      </div>
 
       <InfoDialog open={showInfoDialog} onClose={handleCloseInfo} />
     </main>
