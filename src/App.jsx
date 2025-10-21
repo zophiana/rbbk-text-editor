@@ -41,7 +41,10 @@ function App() {
   };
 
   const handleSaveFile = async () => {
-    if (!filePath) return;
+    if (!filePath) {
+      await handleSaveFileAs();
+      return;
+    }
 
     await writeTextFile(filePath, fileContent);
     setActiveMenu(null);
