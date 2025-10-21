@@ -1,7 +1,7 @@
 import "./App.css";
 import { exit } from "@tauri-apps/plugin-process";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readFile } from "@tauri-apps/plugin-fs";
+import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import InfoDialog from "./components/InfoDialog";
 
@@ -9,9 +9,11 @@ function App() {
   const [fileContent, setFileContent] = useState("Some text");
   const [activeMenu, setActiveMenu] = useState(null);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [filePath, setFilePath] = useState(undefined);
 
   const handleNewFile = () => {
     setFileContent("");
+    setFilePath(undefined);
     setActiveMenu(null);
   };
 
@@ -29,9 +31,17 @@ function App() {
     if (!file) return;
 
     const contents = await readFile(file);
+    setFilePath(file);
     const decoder = new TextDecoder("utf-8");
     const string = decoder.decode(contents);
     setFileContent(string);
+    setActiveMenu(null);
+  };
+
+  const handleSaveFile = async () => {
+    if (!filePath) return;
+
+    await writeTextFile(filePath, fileContent);
     setActiveMenu(null);
   };
 
@@ -64,7 +74,7 @@ function App() {
             Datei
           </button>
           {activeMenu === "datei" && (
-            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-32">
+            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-36">
               <button
                 className="block w-full text-left px-2 py-1 hover:bg-stone-100"
                 onClick={handleNewFile}
@@ -76,6 +86,12 @@ function App() {
                 onClick={handleOpenFile}
               >
                 Datei öffnen
+              </button>
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={handleSaveFile}
+              >
+                Speichern
               </button>
               <button
                 className="block w-full text-left px-2 py-1 hover:bg-stone-100"
