@@ -4,6 +4,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState, useEffect, useRef } from "react";
 import InfoDialog from "./components/InfoDialog";
+import SpecialCharsDialog from "./components/SpecialCharsDialog";
 import { useCursorPosition } from "./hooks";
 
 const fileFilters = [
@@ -17,6 +18,7 @@ function App() {
   const [fileContent, setFileContent] = useState("Some text");
   const [activeMenu, setActiveMenu] = useState(null);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [showSpecialCharsDialog, setShowSpecialCharsDialog] = useState(false);
   const [filePath, setFilePath] = useState(undefined);
   const textAreaRef = useRef(null);
   const [
@@ -90,6 +92,34 @@ function App() {
     setShowInfoDialog(false);
   };
 
+  const handleShowSpecialChars = () => {
+    setShowSpecialCharsDialog(true);
+    setActiveMenu(null);
+  };
+
+  const handleCloseSpecialChars = () => {
+    setShowSpecialCharsDialog(false);
+  };
+
+  const handleInsertChar = (char) => {
+    const textarea = textAreaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newContent =
+      fileContent.substring(0, start) + char + fileContent.substring(end);
+
+    setFileContent(newContent);
+
+    // Set cursor position after the inserted character
+    setTimeout(() => {
+      const newPosition = start + char.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+      textarea.focus();
+    }, 0);
+  };
+
   const handleRowChange = (event) => {
     setInputRow(event.target.value);
   };
@@ -116,9 +146,14 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "o") {
-        event.preventDefault();
-        handleOpenFile();
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === "o") {
+          event.preventDefault();
+          handleOpenFile();
+        } else if (event.key === "i") {
+          event.preventDefault();
+          handleShowSpecialChars();
+        }
       }
     };
 
@@ -256,6 +291,11 @@ function App() {
       </div>
 
       <InfoDialog open={showInfoDialog} onClose={handleCloseInfo} />
+      <SpecialCharsDialog
+        open={showSpecialCharsDialog}
+        onClose={handleCloseSpecialChars}
+        onInsertChar={handleInsertChar}
+      />
     </main>
   );
 }
