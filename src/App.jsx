@@ -252,6 +252,7 @@ function App() {
             className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
+        <input type="number" className="opacity-0" />
       </div>
 
       <InfoDialog open={showInfoDialog} onClose={handleCloseInfo} />
