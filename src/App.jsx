@@ -5,6 +5,7 @@ import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState, useEffect, useRef } from "react";
 import InfoDialog from "./components/InfoDialog";
 import SpecialCharsDialog from "./components/SpecialCharsDialog";
+import Console from "./components/Console";
 import { useCursorPosition } from "./hooks";
 
 const fileFilters = [
@@ -20,6 +21,7 @@ function App() {
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showSpecialCharsDialog, setShowSpecialCharsDialog] = useState(false);
   const [filePath, setFilePath] = useState(undefined);
+  const [consoleMessages, setConsoleMessages] = useState([]);
   const textAreaRef = useRef(null);
   const [
     cursorPosition,
@@ -34,10 +36,16 @@ function App() {
     },
   ] = useCursorPosition(textAreaRef, fileContent);
 
+  const addConsoleMessage = (message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setConsoleMessages((prev) => [...prev, `[${timestamp}] ${message}`]);
+  };
+
   const handleNewFile = () => {
     setFileContent("");
     setFilePath(undefined);
     setActiveMenu(null);
+    addConsoleMessage("New file created - 0 bytes");
   };
 
   const handleOpenFile = async () => {
@@ -54,6 +62,11 @@ function App() {
     const string = decoder.decode(contents);
     setFileContent(string);
     setActiveMenu(null);
+
+    // Calculate file size in bytes
+    const fileSize = contents.length;
+    const fileName = file.split("/").pop() || file;
+    addConsoleMessage(`File loaded: ${fileName} (${fileSize} bytes)`);
   };
 
   const handleSaveFile = async () => {
@@ -162,6 +175,11 @@ function App() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
+  }, []);
+
+  // Add initial console message
+  useEffect(() => {
+    addConsoleMessage("Text Editor initialized");
   }, []);
 
   return (
@@ -289,6 +307,8 @@ function App() {
         </div>
         <input type="number" className="opacity-0" />
       </div>
+
+      <Console messages={consoleMessages} />
 
       <InfoDialog open={showInfoDialog} onClose={handleCloseInfo} />
       <SpecialCharsDialog
