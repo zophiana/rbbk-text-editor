@@ -36,9 +36,20 @@ export default function InfoDialog(props: {
             <span className="text-white text-2xl font-bold">T</span>
           </div>
           <h3 className="text-lg font-semibold mb-2">Text Editor</h3>
-          <p className="text-gray-600 mb-2">
+          <p className="text-gray-600 mb-4">
             Eine einfache Texteditor-Anwendung
           </p>
+          <div className="bg-gray-50 rounded-lg mb-5">
+            <p className="text-gray-600 text-sm mb-1">
+              Entwickelt von{" "}
+              <span className="font-semibold text-gray-800">
+                Antonia Schwennesen
+              </span>
+            </p>
+            <p className="text-gray-600 text-sm">
+              Klasse: <span className="font-semibold text-gray-800">ITO6</span>
+            </p>
+          </div>
           <div className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
             Version 0.1.0
           </div>
