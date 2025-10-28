@@ -22,7 +22,14 @@ function App() {
   const [
     cursorPosition,
     inputValues,
-    { setInputRow, setInputChar, validateAndSetRow, validateAndSetChar },
+    {
+      setInputRow,
+      setInputChar,
+      setInputAbsoluteChar,
+      validateAndSetRow,
+      validateAndSetChar,
+      validateAndSetAbsoluteChar,
+    },
   ] = useCursorPosition(textAreaRef, fileContent);
 
   const handleNewFile = () => {
@@ -91,12 +98,20 @@ function App() {
     setInputChar(event.target.value);
   };
 
+  const handleAbsoluteCharChange = (event) => {
+    setInputAbsoluteChar(event.target.value);
+  };
+
   const handleRowBlur = () => {
     validateAndSetRow(inputValues.inputRow);
   };
 
   const handleCharBlur = () => {
     validateAndSetChar(inputValues.inputChar);
+  };
+
+  const handleAbsoluteCharBlur = () => {
+    validateAndSetAbsoluteChar(inputValues.inputAbsoluteChar);
   };
 
   useEffect(() => {
@@ -220,6 +235,20 @@ function App() {
             value={inputValues.inputChar}
             onChange={handleCharChange}
             onBlur={handleCharBlur}
+            className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="cursor-absolute-char" className="text-stone-600">
+            Zeichen:
+          </label>
+          <input
+            id="cursor-absolute-char"
+            type="number"
+            min="1"
+            value={inputValues.inputAbsoluteChar}
+            onChange={handleAbsoluteCharChange}
+            onBlur={handleAbsoluteCharBlur}
             className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>

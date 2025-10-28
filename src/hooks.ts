@@ -121,20 +121,25 @@ export function useCursorPosition<
   ref: RefObject<T>,
   content: string
 ): [
-  { row: number; char: number },
-  { inputRow: string; inputChar: string },
+  { row: number; char: number; absoluteChar: number },
+  { inputRow: string; inputChar: string; inputAbsoluteChar: string },
   {
     setCursorByRowChar: (row: number, char: number) => void;
+    setCursorByAbsoluteChar: (absoluteChar: number) => void;
     setInputRow: (value: string) => void;
     setInputChar: (value: string) => void;
+    setInputAbsoluteChar: (value: string) => void;
     validateAndSetRow: (inputValue: string) => void;
     validateAndSetChar: (inputValue: string) => void;
+    validateAndSetAbsoluteChar: (inputValue: string) => void;
   }
 ] {
   const [cursorRow, setCursorRow] = useState(1);
   const [cursorChar, setCursorChar] = useState(1);
+  const [cursorAbsoluteChar, setCursorAbsoluteChar] = useState(1);
   const [inputRow, setInputRow] = useState("1");
   const [inputChar, setInputChar] = useState("1");
+  const [inputAbsoluteChar, setInputAbsoluteChar] = useState("1");
   const [caret, { setCursor }] = useCaret(ref);
 
   // Set cursor by row and character
@@ -143,7 +148,17 @@ export function useCursorPosition<
       const position = getCursorPositionFromRowChar(content, row, char);
       setCursor(position);
     },
-    [getCursorPositionFromRowChar, setCursor]
+    [content, setCursor]
+  );
+
+  // Set cursor by absolute character position
+  const setCursorByAbsoluteChar = useCallback(
+    (absoluteChar: number) => {
+      const maxPosition = content.length;
+      const safePosition = Math.max(0, Math.min(absoluteChar - 1, maxPosition));
+      setCursor(safePosition);
+    },
+    [content, setCursor]
   );
 
   // Validate and set row
@@ -164,7 +179,7 @@ export function useCursorPosition<
       );
       setCursor(position);
     },
-    [content, cursorChar, getCursorPositionFromRowChar, setCursor]
+    [content, cursorChar, setCursor]
   );
 
   // Validate and set character
@@ -186,27 +201,52 @@ export function useCursorPosition<
       );
       setCursor(position);
     },
-    [content, cursorRow, getCursorPositionFromRowChar, setCursor]
+    [content, cursorRow, setCursor]
+  );
+
+  // Validate and set absolute character
+  const validateAndSetAbsoluteChar = useCallback(
+    (inputValue: string) => {
+      const newAbsoluteChar = parseInt(inputValue) || 1;
+      const maxAbsoluteChar = Math.max(1, content.length);
+      const validAbsoluteChar = Math.max(
+        1,
+        Math.min(newAbsoluteChar, maxAbsoluteChar)
+      );
+
+      setInputAbsoluteChar(validAbsoluteChar.toString());
+      setCursorAbsoluteChar(validAbsoluteChar);
+
+      setCursorByAbsoluteChar(validAbsoluteChar);
+    },
+    [content, setCursorByAbsoluteChar]
   );
 
   // Update row/char when cursor position changes
   useEffect(() => {
     const { row, char } = getRowCharFromCursorPosition(content, caret.end);
+    const absoluteChar = caret.end + 1; // Convert 0-based to 1-based
+
     setCursorRow(row);
     setCursorChar(char);
+    setCursorAbsoluteChar(absoluteChar);
     setInputRow(row.toString());
     setInputChar(char.toString());
-  }, [caret, getRowCharFromCursorPosition]);
+    setInputAbsoluteChar(absoluteChar.toString());
+  }, [caret, content]);
 
   return [
-    { row: cursorRow, char: cursorChar },
-    { inputRow, inputChar },
+    { row: cursorRow, char: cursorChar, absoluteChar: cursorAbsoluteChar },
+    { inputRow, inputChar, inputAbsoluteChar },
     {
       setCursorByRowChar,
+      setCursorByAbsoluteChar,
       setInputRow,
       setInputChar,
+      setInputAbsoluteChar,
       validateAndSetRow,
       validateAndSetChar,
+      validateAndSetAbsoluteChar,
     },
   ];
 }
