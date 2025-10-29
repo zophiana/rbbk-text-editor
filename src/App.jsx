@@ -25,7 +25,6 @@ function App() {
   const [consoleMessages, setConsoleMessages] = useState([]);
   const [originalContent, setOriginalContent] = useState("Some text\n");
   const textAreaRef = useRef(null);
-  const [showFind, setShowFind] = useState(false);
   const [findQuery, setFindQuery] = useState("");
   const [ignoreCase, setIgnoreCase] = useState(false);
   const [matchPositions, setMatchPositions] = useState([]);
@@ -130,6 +129,13 @@ function App() {
     setShowSpecialCharsDialog(false);
   };
 
+  const focusFindInput = () => {
+    setTimeout(() => {
+      findInputRef.current?.focus();
+      findInputRef.current?.select();
+    }, 0);
+  };
+
   const handleInsertChar = (char) => {
     const textarea = textAreaRef.current;
     if (!textarea) return;
@@ -205,23 +211,7 @@ function App() {
           handleShowSpecialChars();
         } else if (event.key === "f") {
           event.preventDefault();
-          setShowFind(true);
-          setTimeout(() => {
-            findInputRef.current?.focus();
-            findInputRef.current?.select();
-          }, 0);
-        }
-      }
-
-      // F3 / Shift+F3 navigation similar to VSCode
-      if (event.key === "F3") {
-        event.preventDefault();
-        if (matchPositions.length > 0) {
-          if (event.shiftKey) {
-            handleFindPrev();
-          } else {
-            handleFindNext();
-          }
+          focusFindInput();
         }
       }
     };
@@ -373,10 +363,6 @@ function App() {
     setActiveMatchIndex(
       (prev) => (prev - 1 + matchPositions.length) % matchPositions.length
     );
-  };
-
-  const handleCloseFind = () => {
-    setShowFind(false);
   };
 
   // Render content into the contentEditable with highlighted matches
@@ -537,6 +523,29 @@ function App() {
           <button
             className="hover:bg-stone-300 px-2 py-1 flex items-center"
             onClick={() =>
+              setActiveMenu(activeMenu === "bearbeiten" ? null : "bearbeiten")
+            }
+          >
+            Bearbeiten
+          </button>
+          {activeMenu === "bearbeiten" && (
+            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-36">
+              <button
+                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                onClick={() => {
+                  focusFindInput();
+                  setActiveMenu(null);
+                }}
+              >
+                Suchen
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="hover:bg-stone-300 px-2 py-1 flex items-center"
+            onClick={() =>
               setActiveMenu(activeMenu === "hilfe" ? null : "hilfe")
             }
           >
@@ -554,113 +563,106 @@ function App() {
           )}
         </div>
       </div>
-      <div className="relative w-full grow min-h-0">
-        <div
-          ref={editableDivRef}
-          contentEditable="true"
-          spellCheck="false"
-          className="w-full h-full min-h-0 whitespace-pre-wrap font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
-          onInput={(e) => {
-            const target = e.target;
-            const rawText = target.innerText;
-            // Single source of truth: update state; effect will re-render
-            setFileContent(rawText);
-          }}
-          onKeyDown={(e) => {
-            // Prevent inserting new elements via rich paste, keep plain text
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
-              e.preventDefault();
-            }
-            if (e.key === "Enter") {
-              e.preventDefault();
-              const caret = getCaretPosition();
-              const before = fileContent.slice(0, caret);
-              const after = fileContent.slice(caret);
-              const next = `${before}\n${after}`;
-              setFileContent(next);
-              // Advance caret to after the inserted newline
-              setTimeout(() => setCaretPosition(caret + 1), 0);
-            }
-          }}
-          onPaste={(e) => {
-            // Force plain-text paste
-            e.preventDefault();
-            const text = (e.clipboardData || window.clipboardData).getData(
-              "text"
-            );
-            document.execCommand("insertText", false, text);
-          }}
-          suppressContentEditableWarning={true}
-        />
-      </div>
-
-      {showFind && (
-        <div
-          className="absolute top-10 right-4 z-20 bg-white border border-stone-300 shadow-md rounded px-2 py-2 flex items-center gap-2 text-sm"
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              e.preventDefault();
-              handleCloseFind();
-            } else if (e.key === "Enter") {
-              e.preventDefault();
-              if (e.shiftKey) {
-                handleFindPrev();
-              } else {
-                handleFindNext();
-              }
-            }
-          }}
-        >
-          <input
-            ref={findInputRef}
-            type="text"
-            placeholder="Find"
-            value={findQuery}
-            onChange={(e) => {
-              setFindQuery(e.target.value);
-              setActiveMatchIndex(0);
+      <div className="relative w-full grow min-h-0 flex">
+        <div className="min-h-0 flex-1">
+          <div
+            ref={editableDivRef}
+            contentEditable="true"
+            spellCheck="false"
+            className="w-full h-full min-h-0 whitespace-pre-wrap font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
+            onInput={(e) => {
+              const target = e.target;
+              const rawText = target.innerText;
+              // Single source of truth: update state; effect will re-render
+              setFileContent(rawText);
             }}
-            className="px-2 py-1 border border-stone-300 rounded outline-none focus:border-stone-500"
-            style={{ width: 220 }}
+            onKeyDown={(e) => {
+              // Prevent inserting new elements via rich paste, keep plain text
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+                e.preventDefault();
+              }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const caret = getCaretPosition();
+                const before = fileContent.slice(0, caret);
+                const after = fileContent.slice(caret);
+                const next = `${before}\n\r${after}`;
+                setFileContent(next);
+                // Advance caret to after the inserted newline
+                setTimeout(() => setCaretPosition(caret + 1), 0);
+              }
+            }}
+            onPaste={(e) => {
+              // Force plain-text paste
+              e.preventDefault();
+              const text = (e.clipboardData || window.clipboardData).getData(
+                "text"
+              );
+              document.execCommand("insertText", false, text);
+            }}
+            suppressContentEditableWarning={true}
           />
-          <label className="flex items-center gap-1 select-none cursor-pointer text-stone-700">
+        </div>
+        <aside className="w-72 border-l border-stone-300 bg-white p-3 text-sm flex flex-col gap-3">
+          <div className="font-semibold text-stone-700">Suchen</div>
+          <div
+            className="flex items-center gap-2"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (e.shiftKey) {
+                  handleFindPrev();
+                } else {
+                  handleFindNext();
+                }
+              }
+            }}
+          >
+            <input
+              ref={findInputRef}
+              type="text"
+              placeholder="Find"
+              value={findQuery}
+              onChange={(e) => {
+                setFindQuery(e.target.value);
+                setActiveMatchIndex(0);
+              }}
+              className="px-2 py-1 border border-stone-300 rounded outline-none focus:border-stone-500 flex-1"
+            />
+          </div>
+          <label className="flex items-center gap-2 select-none cursor-pointer text-stone-700">
             <input
               type="checkbox"
               checked={ignoreCase}
               onChange={(e) => setIgnoreCase(e.target.checked)}
             />
-            <span>Ignore case</span>
+            <span>Groß-/Kleinschreibung ignorieren</span>
           </label>
-          <div className="text-stone-600 min-w-16 text-center">
-            {matchPositions.length > 0
-              ? `${activeMatchIndex + 1} of ${matchPositions.length}`
-              : "0 of 0"}
+          <div className="flex items-center justify-between text-stone-600">
+            <div>
+              {matchPositions.length > 0
+                ? `${activeMatchIndex + 1} von ${matchPositions.length}`
+                : "0 von 0"}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+                onClick={handleFindPrev}
+                title="Vorheriger Treffer (Shift+Enter)"
+              >
+                Vorheriges
+              </button>
+              <button
+                className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+                onClick={handleFindNext}
+                title="Nächster Treffer (Enter)"
+              >
+                Suchen
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
-              onClick={handleFindPrev}
-              title="Previous match (Shift+Enter / Shift+F3)"
-            >
-              ◀
-            </button>
-            <button
-              className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
-              onClick={handleFindNext}
-              title="Next match (Enter / F3)"
-            >
-              ▶
-            </button>
-          </div>
-          <button
-            className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
-            onClick={handleCloseFind}
-            title="Close (Esc)"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+        </aside>
+      </div>
 
       <div className="bg-stone-200 border-t border-stone-300 text-sm flex items-center px-2 py-1 gap-4">
         <div className="flex items-center gap-2">
