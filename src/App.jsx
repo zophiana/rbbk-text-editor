@@ -1,8 +1,9 @@
 import "./App.css";
 import { exit } from "@tauri-apps/plugin-process";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open, save, confirm } from "@tauri-apps/plugin-dialog";
 import { readFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { useState, useEffect, useRef } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useState, useEffect, useRef, useMemo } from "react";
 import InfoDialog from "./components/InfoDialog";
 import SpecialCharsDialog from "./components/SpecialCharsDialog";
 import Console from "./components/Console";
@@ -22,6 +23,7 @@ function App() {
   const [showSpecialCharsDialog, setShowSpecialCharsDialog] = useState(false);
   const [filePath, setFilePath] = useState(undefined);
   const [consoleMessages, setConsoleMessages] = useState([]);
+  const [originalContent, setOriginalContent] = useState("Some text");
   const textAreaRef = useRef(null);
   const [
     cursorPosition,
@@ -36,6 +38,8 @@ function App() {
     },
   ] = useCursorPosition(textAreaRef, fileContent);
 
+  const hasUnsavedChanges = useMemo(() => originalContent !== fileContent);
+
   const addConsoleMessage = (message) => {
     const timestamp = new Date().toLocaleTimeString();
     setConsoleMessages((prev) => [...prev, `[${timestamp}] ${message}`]);
@@ -44,6 +48,7 @@ function App() {
   const handleNewFile = () => {
     setFileContent("");
     setFilePath(undefined);
+    setOriginalContent("");
     setActiveMenu(null);
     addConsoleMessage("New file created - 0 bytes");
   };
@@ -61,6 +66,7 @@ function App() {
     const decoder = new TextDecoder("utf-8");
     const string = decoder.decode(contents);
     setFileContent(string);
+    setOriginalContent(string);
     setActiveMenu(null);
 
     // Calculate file size in bytes
@@ -76,6 +82,7 @@ function App() {
     }
 
     await writeTextFile(filePath, fileContent);
+    setOriginalContent(fileContent);
     setActiveMenu(null);
   };
 
@@ -89,6 +96,7 @@ function App() {
 
     await writeTextFile(file, fileContent);
     setFilePath(file);
+    setOriginalContent(fileContent);
     setActiveMenu(null);
   };
 
@@ -176,6 +184,41 @@ function App() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    let unlisten;
+
+    const setupCloseListener = async () => {
+      const currentWindow = getCurrentWindow();
+
+      unlisten = await currentWindow.onCloseRequested(async (event) => {
+        console.log("onCloseRequested!");
+        console.log(hasUnsavedChanges);
+        if (hasUnsavedChanges) {
+          const userConfirmed = await confirm(
+            "You have unsaved changes. Are you sure you want to close the application?",
+            "Unsaved Changes"
+          );
+
+          if (!userConfirmed) {
+            console.log("do not close");
+            // Prevent the window from closing
+            event.preventDefault();
+          } else {
+            console.log("do close!");
+          }
+        }
+      });
+    };
+
+    setupCloseListener();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, [hasUnsavedChanges]);
 
   // Add initial console message
   useEffect(() => {
