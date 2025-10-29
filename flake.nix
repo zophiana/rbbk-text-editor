@@ -1,5 +1,5 @@
 {
-  description = "Simple dev env for eliximap";
+  description = "Simple dev env for tauri";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs";
 
