@@ -165,6 +165,27 @@ function App() {
     validateAndSetAbsoluteChar(inputValues.inputAbsoluteChar);
   };
 
+  const handleRowKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      validateAndSetRow(inputValues.inputRow);
+    }
+  };
+
+  const handleCharKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      validateAndSetChar(inputValues.inputChar);
+    }
+  };
+
+  const handleAbsoluteCharKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      validateAndSetAbsoluteChar(inputValues.inputAbsoluteChar);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey || event.metaKey) {
@@ -308,7 +329,7 @@ function App() {
       <div className="bg-stone-200 border-t border-stone-300 text-sm flex items-center px-2 py-1 gap-4">
         <div className="flex items-center gap-2">
           <label htmlFor="cursor-row" className="text-stone-600">
-            Row:
+            Zeile:
           </label>
           <input
             id="cursor-row"
@@ -317,12 +338,13 @@ function App() {
             value={inputValues.inputRow}
             onChange={handleRowChange}
             onBlur={handleRowBlur}
+            onKeyDown={handleRowKeyDown}
             className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor="cursor-char" className="text-stone-600">
-            Char:
+            Spalte:
           </label>
           <input
             id="cursor-char"
@@ -331,12 +353,13 @@ function App() {
             value={inputValues.inputChar}
             onChange={handleCharChange}
             onBlur={handleCharBlur}
+            onKeyDown={handleCharKeyDown}
             className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor="cursor-absolute-char" className="text-stone-600">
-            Zeichen:
+            Zeichenposition:
           </label>
           <input
             id="cursor-absolute-char"
@@ -345,6 +368,7 @@ function App() {
             value={inputValues.inputAbsoluteChar}
             onChange={handleAbsoluteCharChange}
             onBlur={handleAbsoluteCharBlur}
+            onKeyDown={handleAbsoluteCharKeyDown}
             className="w-16 px-1 py-0.5 border border-stone-400 rounded text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
