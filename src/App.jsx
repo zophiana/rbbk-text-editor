@@ -202,17 +202,52 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Global shortcuts
       if (event.ctrlKey || event.metaKey) {
-        if (event.key === "o") {
-          event.preventDefault();
-          handleOpenFile();
-        } else if (event.key === "i") {
-          event.preventDefault();
-          handleShowSpecialChars();
-        } else if (event.key === "f") {
-          event.preventDefault();
-          focusFindInput();
+        const key = event.key.toLowerCase();
+
+        switch (key) {
+          case "n":
+            event.preventDefault();
+            handleNewFile();
+            return;
+          case "o":
+            event.preventDefault();
+            handleOpenFile();
+            return;
+          case "s":
+            event.preventDefault();
+            if (event.shiftKey) {
+              handleSaveFileAs();
+            } else {
+              handleSaveFile();
+            }
+            return;
+          case "f":
+            event.preventDefault();
+            setShowFind(true);
+            setTimeout(() => {
+              findInputRef.current?.focus();
+              findInputRef.current?.select();
+            }, 0);
+            return;
+          case "i":
+            event.preventDefault();
+            handleShowSpecialChars();
+            return;
+          case "q":
+            event.preventDefault();
+            handleExit();
+            return;
+          default:
+            break;
         }
+      }
+      // F1: Info dialog
+      if (event.key === "F1") {
+        event.preventDefault();
+        handleShowInfo();
+        return;
       }
     };
 
@@ -485,36 +520,41 @@ function App() {
             Datei
           </button>
           {activeMenu === "datei" && (
-            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-36">
+            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-64">
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={handleNewFile}
               >
-                Neu
+                <span>Neu</span>
+                <span className="text-stone-500 ml-8">Ctrl+N</span>
               </button>
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={handleOpenFile}
               >
-                Laden
+                <span>Laden</span>
+                <span className="text-stone-500 ml-8">Ctrl+O</span>
               </button>
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={handleSaveFile}
               >
-                Speichern
+                <span>Speichern</span>
+                <span className="text-stone-500 ml-8">Ctrl+S</span>
               </button>
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={handleSaveFileAs}
               >
-                Speichern unter
+                <span>Speichern unter</span>
+                <span className="text-stone-500 ml-8">Ctrl+Shift+S</span>
               </button>
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={handleExit}
               >
-                Beenden
+                <span>Beenden</span>
+                <span className="text-stone-500 ml-8">Ctrl+Q</span>
               </button>
             </div>
           )}
@@ -531,13 +571,14 @@ function App() {
           {activeMenu === "bearbeiten" && (
             <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-36">
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={() => {
                   focusFindInput();
                   setActiveMenu(null);
                 }}
               >
-                Suchen
+                <span>Suchen</span>
+                <span className="text-stone-500 ml-8">Ctrl+F</span>
               </button>
             </div>
           )}
@@ -554,10 +595,11 @@ function App() {
           {activeMenu === "hilfe" && (
             <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-32">
               <button
-                className="block w-full text-left px-2 py-1 hover:bg-stone-100"
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={handleShowInfo}
               >
-                Info
+                <span>Info</span>
+                <span className="text-stone-500 ml-8">F1</span>
               </button>
             </div>
           )}
