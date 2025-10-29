@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type RefObject } from "react";
 
 type Sel = { start: number; end: number };
 
-export function useCaret<T extends HTMLTextAreaElement | HTMLInputElement>(
+export function useCaret<T extends HTMLElement>(
   ref: RefObject<T>
 ): [
   Sel,
@@ -19,48 +19,144 @@ export function useCaret<T extends HTMLTextAreaElement | HTMLInputElement>(
 
     if (document.activeElement !== el) return;
 
-    setSel({
-      start: el.selectionStart ?? 0,
-      end: el.selectionEnd ?? 0,
-    });
+    // If it's an input/textarea, use selectionStart/End
+    const anyEl = el as any;
+    if (
+      typeof anyEl.selectionStart === "number" &&
+      typeof anyEl.selectionEnd === "number"
+    ) {
+      setSel({
+        start: anyEl.selectionStart ?? 0,
+        end: anyEl.selectionEnd ?? 0,
+      });
+      return;
+    }
+
+    // Otherwise, compute selection inside contentEditable
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const preRange = range.cloneRange();
+      preRange.selectNodeContents(el);
+      preRange.setEnd(range.endContainer, range.endOffset);
+      const end = preRange.toString().length;
+
+      const preStart = range.cloneRange();
+      preStart.selectNodeContents(el);
+      preStart.setEnd(range.startContainer, range.startOffset);
+      const start = preStart.toString().length;
+
+      setSel({ start, end });
+    }
   }, []);
 
   // Set cursor to a specific position (no selection)
-  const setCursor = useCallback((position: number) => {
-    const el = ref.current;
-    if (!el) return;
+  const setCursor = useCallback(
+    (position: number) => {
+      const el = ref.current as any;
+      if (!el) return;
 
-    // Clamp position to valid range
-    const maxPos = el.value.length;
-    const safePos = Math.max(0, Math.min(position, maxPos));
+      // If input/textarea
+      if (
+        typeof el.value === "string" &&
+        typeof el.setSelectionRange === "function"
+      ) {
+        const maxPos = el.value.length;
+        const safePos = Math.max(0, Math.min(position, maxPos));
+        el.setSelectionRange(safePos, safePos);
+        setSel({ start: safePos, end: safePos });
+        if (document.activeElement !== el) el.focus();
+        return;
+      }
 
-    el.setSelectionRange(safePos, safePos);
-    setSel({ start: safePos, end: safePos });
-
-    // Focus if not already focused
-    if (document.activeElement !== el) {
-      el.focus();
-    }
-  }, []);
+      // contentEditable root: place caret at absolute char index
+      const root = ref.current as HTMLElement;
+      const selection = window.getSelection();
+      const range = document.createRange();
+      let charIndex = 0;
+      const maxPos = root.textContent?.length ?? 0;
+      const safePos = Math.max(0, Math.min(position, maxPos));
+      let set = false;
+      for (const node of Array.from(root.childNodes)) {
+        const text = node.textContent || "";
+        const length = text.length;
+        if (safePos <= charIndex + length) {
+          const offset = Math.max(0, safePos - charIndex);
+          range.setStart((node as any).firstChild ?? node, offset);
+          set = true;
+          break;
+        }
+        charIndex += length;
+      }
+      if (!set) range.setStart(root, root.childNodes.length);
+      range.collapse(true);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      setSel({ start: safePos, end: safePos });
+      if (document.activeElement !== root) root.focus();
+    },
+    [ref]
+  );
 
   // Set selection range
-  const setSelection = useCallback((start: number, end: number) => {
-    const el = ref.current;
-    if (!el) return;
+  const setSelection = useCallback(
+    (start: number, end: number) => {
+      const el = ref.current as any;
+      if (!el) return;
 
-    // Clamp positions to valid range
-    const maxPos = el.value.length;
-    const safeStart = Math.max(0, Math.min(start, maxPos));
-    const safeEnd = Math.max(safeStart, Math.min(end, maxPos));
+      // Input/textarea path
+      if (
+        typeof el.value === "string" &&
+        typeof el.setSelectionRange === "function"
+      ) {
+        const maxPos = el.value.length;
+        const safeStart = Math.max(0, Math.min(start, maxPos));
+        const safeEnd = Math.max(safeStart, Math.min(end, maxPos));
+        el.setSelectionRange(safeStart, safeEnd);
+        setSel({ start: safeStart, end: safeEnd });
+        if (document.activeElement !== el) el.focus();
+        return;
+      }
 
-    el.setSelectionRange(safeStart, safeEnd);
-    setSel({ start: safeStart, end: safeEnd });
+      // contentEditable: map absolute indices to DOM
+      const root = ref.current as HTMLElement;
+      const selection = window.getSelection();
+      const range = document.createRange();
+      const maxPos = root.textContent?.length ?? 0;
+      const safeStart = Math.max(0, Math.min(start, maxPos));
+      const safeEnd = Math.max(safeStart, Math.min(end, maxPos));
 
-    // Focus if not already focused
-    if (document.activeElement !== el) {
-      el.focus();
-    }
-  }, []);
+      let charIndex = 0;
+      let startSet = false;
+      let endSet = false;
+      for (const node of Array.from(root.childNodes)) {
+        const text = node.textContent || "";
+        const length = text.length;
+        const nodeStart = charIndex;
+        const nodeEnd = charIndex + length;
+        if (!startSet && safeStart >= nodeStart && safeStart <= nodeEnd) {
+          range.setStart(
+            (node as any).firstChild ?? node,
+            safeStart - nodeStart
+          );
+          startSet = true;
+        }
+        if (!endSet && safeEnd >= nodeStart && safeEnd <= nodeEnd) {
+          range.setEnd((node as any).firstChild ?? node, safeEnd - nodeStart);
+          endSet = true;
+        }
+        charIndex += length;
+        if (startSet && endSet) break;
+      }
+      if (!startSet) range.setStart(root, 0);
+      if (!endSet) range.setEnd(root, root.childNodes.length);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      setSel({ start: safeStart, end: safeEnd });
+      if (document.activeElement !== root) root.focus();
+    },
+    [ref]
+  );
 
   useEffect(() => {
     const el = ref.current;

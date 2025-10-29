@@ -17,14 +17,22 @@ const fileFilters = [
 ];
 
 function App() {
-  const [fileContent, setFileContent] = useState("Some text");
+  const [fileContent, setFileContent] = useState("Some text\n");
   const [activeMenu, setActiveMenu] = useState(null);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showSpecialCharsDialog, setShowSpecialCharsDialog] = useState(false);
   const [filePath, setFilePath] = useState(undefined);
   const [consoleMessages, setConsoleMessages] = useState([]);
-  const [originalContent, setOriginalContent] = useState("Some text");
+  const [originalContent, setOriginalContent] = useState("Some text\n");
   const textAreaRef = useRef(null);
+  const [showFind, setShowFind] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [ignoreCase, setIgnoreCase] = useState(false);
+  const [matchPositions, setMatchPositions] = useState([]);
+  const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+  const findInputRef = useRef(null);
+  const editableDivRef = useRef(null);
+  const lastRenderSigRef = useRef("");
   const [
     cursorPosition,
     inputValues,
@@ -36,7 +44,7 @@ function App() {
       validateAndSetChar,
       validateAndSetAbsoluteChar,
     },
-  ] = useCursorPosition(textAreaRef, fileContent);
+  ] = useCursorPosition(editableDivRef, fileContent);
 
   const hasUnsavedChanges = useMemo(() => originalContent !== fileContent);
 
@@ -195,6 +203,25 @@ function App() {
         } else if (event.key === "i") {
           event.preventDefault();
           handleShowSpecialChars();
+        } else if (event.key === "f") {
+          event.preventDefault();
+          setShowFind(true);
+          setTimeout(() => {
+            findInputRef.current?.focus();
+            findInputRef.current?.select();
+          }, 0);
+        }
+      }
+
+      // F3 / Shift+F3 navigation similar to VSCode
+      if (event.key === "F3") {
+        event.preventDefault();
+        if (matchPositions.length > 0) {
+          if (event.shiftKey) {
+            handleFindPrev();
+          } else {
+            handleFindNext();
+          }
         }
       }
     };
@@ -205,6 +232,216 @@ function App() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  // Recompute matches when content, query, or case setting changes
+  useEffect(() => {
+    if (!findQuery) {
+      setMatchPositions([]);
+      setActiveMatchIndex(0);
+      return;
+    }
+
+    const haystack = ignoreCase ? fileContent.toLowerCase() : fileContent;
+    const needle = ignoreCase ? findQuery.toLowerCase() : findQuery;
+
+    const positions = [];
+    let fromIndex = 0;
+    while (needle && fromIndex <= haystack.length) {
+      const idx = haystack.indexOf(needle, fromIndex);
+      if (idx === -1) break;
+      positions.push(idx);
+      fromIndex = idx + (needle.length || 1);
+    }
+
+    setMatchPositions(positions);
+    // If there are matches and current selection is outside, reset to first
+    setActiveMatchIndex((prev) => {
+      if (positions.length === 0) return 0;
+      return Math.min(prev, Math.max(positions.length - 1, 0));
+    });
+  }, [fileContent, findQuery, ignoreCase]);
+
+  // When active match changes, select it in the textarea
+  // Utilities for contentEditable caret/selection management
+  const getCaretPosition = () => {
+    if (!editableDivRef.current) return 0;
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(editableDivRef.current);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      return preCaretRange.toString().length;
+    }
+    return 0;
+  };
+
+  const setCaretPosition = (position) => {
+    if (!editableDivRef.current) return;
+    const selection = window.getSelection();
+    const range = document.createRange();
+    let charIndex = 0;
+    const root = editableDivRef.current;
+    for (const node of root.childNodes) {
+      const text = node?.textContent || "";
+      const length = text.length;
+      if (position <= charIndex + length) {
+        const offset = Math.max(0, position - charIndex);
+        const target = node.firstChild ?? node;
+        try {
+          range.setStart(target, offset);
+        } catch (_) {
+          range.setStart(root, root.childNodes.length);
+        }
+        break;
+      }
+      charIndex += length;
+    }
+    range.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  };
+
+  const setSelectionRangeCE = (startPos, endPos) => {
+    if (!editableDivRef.current) return;
+    const selection = window.getSelection();
+    const range = document.createRange();
+    let charIndex = 0;
+    let startSet = false;
+    let endSet = false;
+    const root = editableDivRef.current;
+    for (const node of root.childNodes) {
+      const text = node?.textContent || "";
+      const length = text.length;
+      const nodeStart = charIndex;
+      const nodeEnd = charIndex + length;
+
+      if (!startSet && startPos >= nodeStart && startPos <= nodeEnd) {
+        const offset = Math.max(0, startPos - nodeStart);
+        range.setStart(node.firstChild ?? node, offset);
+        startSet = true;
+      }
+      if (!endSet && endPos >= nodeStart && endPos <= nodeEnd) {
+        const offset = Math.max(0, endPos - nodeStart);
+        range.setEnd(node.firstChild ?? node, offset);
+        endSet = true;
+      }
+
+      charIndex += length;
+      if (startSet && endSet) break;
+    }
+    if (!startSet) range.setStart(root, 0);
+    if (!endSet) range.setEnd(root, root.childNodes.length);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  };
+
+  const scrollMatchIntoView = (matchIndex) => {
+    const container = editableDivRef.current;
+    if (!container) return;
+    const el = container.querySelector(`[data-match-index=\"${matchIndex}\"]`);
+    if (!el) return;
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    // Compute deltas relative to container scrollable area
+    const topDelta = eRect.top - cRect.top;
+    const bottomDelta = eRect.bottom - cRect.bottom;
+    const leftDelta = eRect.left - cRect.left;
+    const rightDelta = eRect.right - cRect.right;
+    const margin = 8; // small padding
+
+    if (topDelta < margin) {
+      container.scrollTop += topDelta - margin;
+    } else if (bottomDelta > -margin) {
+      container.scrollTop += bottomDelta + margin;
+    }
+
+    if (leftDelta < margin) {
+      container.scrollLeft += leftDelta - margin;
+    } else if (rightDelta > -margin) {
+      container.scrollLeft += rightDelta + margin;
+    }
+  };
+
+  const handleFindNext = () => {
+    if (matchPositions.length === 0) return;
+    setActiveMatchIndex((prev) => (prev + 1) % matchPositions.length);
+  };
+
+  const handleFindPrev = () => {
+    if (matchPositions.length === 0) return;
+    setActiveMatchIndex(
+      (prev) => (prev - 1 + matchPositions.length) % matchPositions.length
+    );
+  };
+
+  const handleCloseFind = () => {
+    setShowFind(false);
+  };
+
+  // Render content into the contentEditable with highlighted matches
+  const refreshEditable = (preserveCaret) => {
+    if (!editableDivRef.current) return;
+    const sig = `${fileContent}\n__FQ__:${findQuery}\n__MP__:${matchPositions.join(
+      ","
+    )}\n__AMI__:${activeMatchIndex}`;
+    if (!preserveCaret && lastRenderSigRef.current === sig) {
+      return;
+    }
+    const caret = preserveCaret ? getCaretPosition() : null;
+    const root = editableDivRef.current;
+    root.innerHTML = "";
+
+    const frag = document.createDocumentFragment();
+    if (!findQuery || matchPositions.length === 0) {
+      frag.appendChild(document.createTextNode(fileContent));
+    } else {
+      let lastIndex = 0;
+      for (let i = 0; i < matchPositions.length; i++) {
+        const start = matchPositions[i];
+        const end = start + findQuery.length;
+        if (lastIndex < start) {
+          frag.appendChild(
+            document.createTextNode(fileContent.slice(lastIndex, start))
+          );
+        }
+        const span = document.createElement("span");
+        span.className =
+          i === activeMatchIndex ? "bg-orange-300" : "bg-yellow-200";
+        span.dataset.matchIndex = String(i);
+        span.textContent = fileContent.slice(start, end);
+        frag.appendChild(span);
+        lastIndex = end;
+      }
+      if (lastIndex < fileContent.length) {
+        frag.appendChild(document.createTextNode(fileContent.slice(lastIndex)));
+      }
+    }
+    root.appendChild(frag);
+    lastRenderSigRef.current = sig;
+    if (preserveCaret && caret !== null) {
+      setCaretPosition(caret);
+    }
+  };
+
+  // Update rendered content when dependencies change
+  useEffect(() => {
+    refreshEditable(document.activeElement === editableDivRef.current);
+  }, [fileContent, findQuery, matchPositions, activeMatchIndex]);
+
+  // Move selection to active match if the editor is focused; always ensure visibility
+  useEffect(() => {
+    if (!findQuery || matchPositions.length === 0) return;
+    const start = matchPositions[activeMatchIndex] ?? matchPositions[0];
+    const end = start + findQuery.length;
+    try {
+      if (document.activeElement === editableDivRef.current) {
+        setSelectionRangeCE(start, end);
+      }
+      // Ensure the active match is visible even when unfocused
+      requestAnimationFrame(() => scrollMatchIntoView(activeMatchIndex));
+    } catch (_) {}
+  }, [activeMatchIndex, matchPositions, findQuery]);
 
   useEffect(() => {
     let unlisten;
@@ -317,14 +554,113 @@ function App() {
           )}
         </div>
       </div>
-      <textarea
-        ref={textAreaRef}
-        name="text-editor"
-        id="text-editor"
-        className="w-full grow resize-none border-none font-mono focus:outline-none bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
-        value={fileContent}
-        onChange={(event) => setFileContent(event.target.value)}
-      ></textarea>
+      <div className="relative w-full grow min-h-0">
+        <div
+          ref={editableDivRef}
+          contentEditable="true"
+          spellCheck="false"
+          className="w-full h-full min-h-0 whitespace-pre-wrap font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
+          onInput={(e) => {
+            const target = e.target;
+            const rawText = target.innerText;
+            // Single source of truth: update state; effect will re-render
+            setFileContent(rawText);
+          }}
+          onKeyDown={(e) => {
+            // Prevent inserting new elements via rich paste, keep plain text
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+              e.preventDefault();
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const caret = getCaretPosition();
+              const before = fileContent.slice(0, caret);
+              const after = fileContent.slice(caret);
+              const next = `${before}\n${after}`;
+              setFileContent(next);
+              // Advance caret to after the inserted newline
+              setTimeout(() => setCaretPosition(caret + 1), 0);
+            }
+          }}
+          onPaste={(e) => {
+            // Force plain-text paste
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData(
+              "text"
+            );
+            document.execCommand("insertText", false, text);
+          }}
+          suppressContentEditableWarning={true}
+        />
+      </div>
+
+      {showFind && (
+        <div
+          className="absolute top-10 right-4 z-20 bg-white border border-stone-300 shadow-md rounded px-2 py-2 flex items-center gap-2 text-sm"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              handleCloseFind();
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              if (e.shiftKey) {
+                handleFindPrev();
+              } else {
+                handleFindNext();
+              }
+            }
+          }}
+        >
+          <input
+            ref={findInputRef}
+            type="text"
+            placeholder="Find"
+            value={findQuery}
+            onChange={(e) => {
+              setFindQuery(e.target.value);
+              setActiveMatchIndex(0);
+            }}
+            className="px-2 py-1 border border-stone-300 rounded outline-none focus:border-stone-500"
+            style={{ width: 220 }}
+          />
+          <label className="flex items-center gap-1 select-none cursor-pointer text-stone-700">
+            <input
+              type="checkbox"
+              checked={ignoreCase}
+              onChange={(e) => setIgnoreCase(e.target.checked)}
+            />
+            <span>Ignore case</span>
+          </label>
+          <div className="text-stone-600 min-w-16 text-center">
+            {matchPositions.length > 0
+              ? `${activeMatchIndex + 1} of ${matchPositions.length}`
+              : "0 of 0"}
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+              onClick={handleFindPrev}
+              title="Previous match (Shift+Enter / Shift+F3)"
+            >
+              ◀
+            </button>
+            <button
+              className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+              onClick={handleFindNext}
+              title="Next match (Enter / F3)"
+            >
+              ▶
+            </button>
+          </div>
+          <button
+            className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+            onClick={handleCloseFind}
+            title="Close (Esc)"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="bg-stone-200 border-t border-stone-300 text-sm flex items-center px-2 py-1 gap-4">
         <div className="flex items-center gap-2">
