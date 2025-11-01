@@ -203,6 +203,14 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Close menus with Escape
+      if (event.key === "Escape") {
+        if (activeMenu) {
+          setActiveMenu(null);
+          event.preventDefault();
+          return;
+        }
+      }
       // Global shortcuts
       if (event.ctrlKey || event.metaKey) {
         const key = event.key.toLowerCase();
@@ -254,7 +262,7 @@ function App() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [activeMenu]);
 
   // Recompute matches when content, query, or case setting changes
   useEffect(() => {
@@ -549,9 +557,17 @@ function App() {
       onClick={() => setActiveMenu(null)}
     >
       <div className="bg-stone-200 border-b border-stone-300 text-sm flex">
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="relative"
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => {
+            if (activeMenu) setActiveMenu("datei");
+          }}
+        >
           <button
-            className="hover:bg-stone-300 px-2 py-1 flex items-center"
+            className={`px-2 py-1 flex items-center ${
+              activeMenu === "datei" ? "bg-stone-300" : "hover:bg-stone-300"
+            }`}
             onClick={() =>
               setActiveMenu(activeMenu === "datei" ? null : "datei")
             }
@@ -598,9 +614,19 @@ function App() {
             </div>
           )}
         </div>
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="relative"
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => {
+            if (activeMenu) setActiveMenu("bearbeiten");
+          }}
+        >
           <button
-            className="hover:bg-stone-300 px-2 py-1 flex items-center"
+            className={`px-2 py-1 flex items-center ${
+              activeMenu === "bearbeiten"
+                ? "bg-stone-300"
+                : "hover:bg-stone-300"
+            }`}
             onClick={() =>
               setActiveMenu(activeMenu === "bearbeiten" ? null : "bearbeiten")
             }
@@ -632,9 +658,17 @@ function App() {
             </div>
           )}
         </div>
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="relative"
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => {
+            if (activeMenu) setActiveMenu("hilfe");
+          }}
+        >
           <button
-            className="hover:bg-stone-300 px-2 py-1 flex items-center"
+            className={`px-2 py-1 flex items-center ${
+              activeMenu === "hilfe" ? "bg-stone-300" : "hover:bg-stone-300"
+            }`}
             onClick={() =>
               setActiveMenu(activeMenu === "hilfe" ? null : "hilfe")
             }
