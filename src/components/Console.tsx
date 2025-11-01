@@ -16,7 +16,7 @@ const Console: React.FC<ConsoleProps> = ({ messages }) => {
   return (
     <div
       ref={consoleRef}
-      className="bg-black text-green-400 font-mono text-xs p-2 h-20 overflow-y-auto border-t border-gray-800"
+      className="bg-black text-green-400 font-mono text-xs p-2 h-20 overflow-y-auto border-t border-gray-800 flex-none"
     >
       <div className="space-y-1">
         {messages.map((message, index) => (

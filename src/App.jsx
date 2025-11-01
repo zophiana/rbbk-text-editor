@@ -606,12 +606,12 @@ function App() {
         </div>
       </div>
       <div className="relative w-full grow min-h-0 flex">
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 min-w-0">
           <div
             ref={editableDivRef}
             contentEditable="true"
             spellCheck="false"
-            className="w-full h-full min-h-0 whitespace-pre-wrap font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
+            className="w-full h-full min-h-0 whitespace-pre font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
             onInput={(e) => {
               const target = e.target;
               const rawText = target.innerText;
