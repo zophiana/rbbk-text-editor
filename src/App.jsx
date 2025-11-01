@@ -608,7 +608,7 @@ function App() {
             Bearbeiten
           </button>
           {activeMenu === "bearbeiten" && (
-            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-36">
+            <div className="absolute top-full left-0 bg-white border border-stone-300 shadow-lg z-10 min-w-48">
               <button
                 className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
                 onClick={() => {
@@ -618,6 +618,16 @@ function App() {
               >
                 <span>Suchen</span>
                 <span className="text-stone-500 ml-8">Ctrl+F</span>
+              </button>
+              <button
+                className="w-full text-left px-2 py-1 hover:bg-stone-100 flex items-center justify-between"
+                onClick={() => {
+                  handleShowSpecialChars();
+                  setActiveMenu(null);
+                }}
+              >
+                <span>Sonderzeichen einfügen</span>
+                <span className="text-stone-500 ml-8">Ctrl+I</span>
               </button>
             </div>
           )}
