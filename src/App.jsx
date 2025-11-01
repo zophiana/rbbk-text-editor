@@ -48,6 +48,27 @@ function App() {
 
   const hasUnsavedChanges = useMemo(() => originalContent !== fileContent);
 
+  useEffect(() => {
+    const updateTitle = async () => {
+      try {
+        const fileName = filePath
+          ? filePath.split(/[\\/]/).pop() || filePath
+          : "Unbenannt";
+        const unsavedDot = hasUnsavedChanges ? "⦁" : " ";
+        const title = `${fileName} ${unsavedDot} - Text Editor`;
+        const currentWindow = getCurrentWindow();
+        await currentWindow.setTitle(title);
+      } catch (e) {
+        // If not running inside Tauri (e.g. in the browser) this may fail —
+        // just log and continue.
+        // eslint-disable-next-line no-console
+        console.warn("Unable to set window title:", e);
+      }
+    };
+
+    updateTitle();
+  }, [filePath, hasUnsavedChanges]);
+
   const addConsoleMessage = (message) => {
     const timestamp = new Date().toLocaleTimeString();
     setConsoleMessages((prev) => [...prev, `[${timestamp}] ${message}`]);
