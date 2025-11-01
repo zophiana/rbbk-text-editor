@@ -1,18 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import ExtraFeaturesDialog from "./ExtraFeaturesDialog";
 
 export default function InfoDialog(props: {
   open: boolean;
   onClose: () => void;
 }) {
+  const [extraOpen, setExtraOpen] = useState(false);
+  const dialog = React.useRef<HTMLDivElement>(null);
   if (!props.open) return null;
 
   return (
     <div
+      tabIndex={0}
       className="fixed inset-0 bg-gray-800/50 backdrop-blur-[2px] flex items-center justify-center z-50"
       role="dialog"
       aria-modal="true"
       onClick={props.onClose}
+      ref={dialog}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && !e.defaultPrevented) props.onClose();
+      }}
     >
       <div
         className="bg-white rounded-lg p-6 max-w-md w-full mx-4 text-gray-800 shadow-xl border border-gray-200"
@@ -59,6 +67,15 @@ export default function InfoDialog(props: {
         <div className="space-y-2">
           <button
             type="button"
+            onClick={() => setExtraOpen(true)}
+            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded w-full text-left"
+            aria-label="Öffne die Beschreibung der Zusatzfunktionen"
+          >
+            <span>Zusatzfunktionen</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => {
               openUrl("https://github.com/zophiana/rbbk-text-editor/");
             }}
@@ -94,6 +111,13 @@ export default function InfoDialog(props: {
           </button>
         </div>
       </div>
+      <ExtraFeaturesDialog
+        open={extraOpen}
+        onClose={() => {
+          setExtraOpen(false);
+          dialog.current?.focus();
+        }}
+      />
     </div>
   );
 }
