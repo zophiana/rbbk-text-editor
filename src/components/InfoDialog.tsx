@@ -110,6 +110,10 @@ export default function InfoDialog(props: {
             <span className="text-gray-400">↗</span>
           </button>
         </div>
+        <div className="mt-4 text-center text-sm text-gray-500">
+          © {new Date().getFullYear()} Antonia Schwennesen. Alle Rechte
+          vorbehalten.
+        </div>
       </div>
       <ExtraFeaturesDialog
         open={extraOpen}
