@@ -27,6 +27,7 @@ function App() {
   const textAreaRef = useRef(null);
   const [findQuery, setFindQuery] = useState("");
   const [ignoreCase, setIgnoreCase] = useState(false);
+  const [replaceQuery, setReplaceQuery] = useState("");
   const [matchPositions, setMatchPositions] = useState([]);
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const findInputRef = useRef(null);
@@ -420,6 +421,38 @@ function App() {
     scrollMatchIntoView(prevIndex);
   };
 
+  // Escape for building regex from the literal query
+  const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const handleReplaceOne = () => {
+    if (!findQuery || matchPositions.length === 0) return;
+    const idx = Math.min(activeMatchIndex, matchPositions.length - 1);
+    const start = matchPositions[idx];
+    const end = start + findQuery.length;
+    const newContent =
+      fileContent.slice(0, start) + replaceQuery + fileContent.slice(end);
+
+    setFileContent(newContent);
+    // After update, focus and place caret after the inserted replacement
+    setTimeout(() => {
+      editableDivRef.current?.focus();
+      const caretPos = start + (replaceQuery ? replaceQuery.length : 0);
+      setSelectionRangeCE(caretPos, caretPos);
+      // Try to keep showing the same logical match index
+      scrollMatchIntoView(idx);
+    }, 0);
+  };
+
+  const handleReplaceAll = () => {
+    if (!findQuery) return;
+    const flags = ignoreCase ? "gi" : "g";
+    const regex = new RegExp(escapeRegExp(findQuery), flags);
+    const newContent = fileContent.replace(regex, replaceQuery);
+    setFileContent(newContent);
+    setActiveMatchIndex(0);
+    setTimeout(() => editableDivRef.current?.focus(), 0);
+  };
+
   // Render content into the contentEditable with highlighted matches
   const refreshEditable = (preserveCaret) => {
     if (!editableDivRef.current) return;
@@ -653,54 +686,100 @@ function App() {
         </div>
         <aside className="w-72 border-l border-stone-300 bg-white p-3 text-sm flex flex-col gap-3">
           <div className="font-semibold text-stone-700">Suchen</div>
-          <div
-            className="flex items-center gap-2"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                if (e.shiftKey) {
-                  handleFindPrev();
-                } else {
-                  handleFindNext();
-                }
-              }
-            }}
-          >
-            <input
-              ref={findInputRef}
-              type="text"
-              placeholder="Find"
-              value={findQuery}
-              onChange={(e) => {
-                setFindQuery(e.target.value);
-                setActiveMatchIndex(0);
-              }}
+          <div>
+            <div
+              className="flex"
               onKeyDown={(e) => {
-                // Enter is handled on the container; handle Escape here to
-                // focus the editable area and select the active match.
-                if (e.key === "Escape") {
+                if (e.key === "Enter") {
                   e.preventDefault();
-                  // If there are matches, select the active one; otherwise
-                  // just focus the editable area.
-                  if (matchPositions.length > 0) {
-                    // activeMatchIndex is always non-negative; clamp to last index
-                    const idx = Math.min(
-                      activeMatchIndex,
-                      matchPositions.length - 1
-                    );
-                    const start = matchPositions[idx];
-                    const end = start + findQuery.length;
-                    // Focus the contentEditable and set selection
-                    editableDivRef.current?.focus();
-                    setSelectionRangeCE(start, end);
-                    scrollMatchIntoView(idx);
+                  if (e.shiftKey) {
+                    handleFindPrev();
                   } else {
-                    editableDivRef.current?.focus();
+                    handleFindNext();
                   }
                 }
               }}
-              className="px-2 py-1 border border-stone-300 rounded outline-none focus:border-stone-500 flex-1"
-            />
+            >
+              <input
+                ref={findInputRef}
+                type="text"
+                placeholder="Find"
+                value={findQuery}
+                onChange={(e) => {
+                  setFindQuery(e.target.value);
+                  setActiveMatchIndex(0);
+                }}
+                onKeyDown={(e) => {
+                  // Enter is handled on the container; handle Escape here to
+                  // focus the editable area and select the active match.
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    // If there are matches, select the active one; otherwise
+                    // just focus the editable area.
+                    if (matchPositions.length > 0) {
+                      // activeMatchIndex is always non-negative; clamp to last index
+                      const idx = Math.min(
+                        activeMatchIndex,
+                        matchPositions.length - 1
+                      );
+                      const start = matchPositions[idx];
+                      const end = start + findQuery.length;
+                      // Focus the contentEditable and set selection
+                      editableDivRef.current?.focus();
+                      setSelectionRangeCE(start, end);
+                      scrollMatchIntoView(idx);
+                    } else {
+                      editableDivRef.current?.focus();
+                    }
+                  }
+                }}
+                className="px-2 py-1 border border-stone-300 rounded outline-none focus:border-stone-500 flex-1"
+              />
+            </div>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                placeholder="Replace"
+                value={replaceQuery}
+                onChange={(e) => setReplaceQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Enter triggers single replace; Shift+Enter -> replace all
+                    if (e.shiftKey) {
+                      handleReplaceAll();
+                    } else {
+                      handleReplaceOne();
+                    }
+                  }
+                }}
+                className="px-2 py-1 min-w-10 border border-stone-300 rounded outline-none focus:border-stone-500"
+              />
+              <button
+                className="px-2 py-1 border border-stone-300 rounded hover:enabled:bg-stone-100 disabled:opacity-50"
+                onClick={handleReplaceOne}
+                title="Ersetzen (Enter)"
+                disabled={
+                  matchPositions.length === 0 ||
+                  !findQuery ||
+                  findQuery === replaceQuery
+                }
+              >
+                Ersetzen
+              </button>
+              <button
+                className="px-2 py-1 border border-stone-300 rounded hover:enabled:bg-stone-100 disabled:opacity-50"
+                onClick={handleReplaceAll}
+                title="Alle ersetzen (Shift+Enter)"
+                disabled={
+                  matchPositions.length === 0 ||
+                  !findQuery ||
+                  findQuery === replaceQuery
+                }
+              >
+                Alle
+              </button>
+            </div>
           </div>
           <label className="flex items-center gap-2 select-none cursor-pointer text-stone-700">
             <input
@@ -718,16 +797,18 @@ function App() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+                className="px-2 py-1 border border-stone-300 rounded hover:enabled:bg-stone-100 disabled:opacity-50"
                 onClick={handleFindPrev}
                 title="Vorheriger Treffer (Shift+Enter)"
+                disabled={matchPositions.length === 0 || !findQuery}
               >
                 Vorheriges
               </button>
               <button
-                className="px-2 py-1 border border-stone-300 rounded hover:bg-stone-100"
+                className="px-2 py-1 border border-stone-300 rounded hover:enabled:bg-stone-100 disabled:opacity-50"
                 onClick={handleFindNext}
                 title="Nächster Treffer (Enter)"
+                disabled={matchPositions.length === 0 || !findQuery}
               >
                 Suchen
               </button>
