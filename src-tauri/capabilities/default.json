@@ -12,6 +12,7 @@
     "dialog:default",
     "fs:default",
     "fs:allow-write-text-file",
-    "process:default"
+    "process:default",
+    "opener:allow-default-urls"
   ]
 }

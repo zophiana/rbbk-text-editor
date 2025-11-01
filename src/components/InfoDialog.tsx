@@ -1,4 +1,5 @@
 import React from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 export default function InfoDialog(props: {
   open: boolean;
@@ -56,33 +57,41 @@ export default function InfoDialog(props: {
         </div>
 
         <div className="space-y-2">
-          <a
-            href="https://github.com/zophiana/rbbk-text-editor/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+          <button
+            type="button"
+            onClick={() => {
+              openUrl("https://github.com/zophiana/rbbk-text-editor/");
+            }}
+            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded w-full text-left"
+            aria-label="Öffne Code auf GitHub"
           >
             <span>Code</span>
             <span className="text-gray-400">↗</span>
-          </a>
-          <a
-            href="https://github.com/zophiana/rbbk-text-editor/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              openUrl("https://github.com/zophiana/rbbk-text-editor/issues");
+            }}
+            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded w-full text-left"
+            aria-label="Fehler melden auf GitHub"
           >
             <span>Fehler melden</span>
             <span className="text-gray-400">↗</span>
-          </a>
-          <a
-            href="https://github.com/zophiana/rbbk-text-editor/pulls"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              openUrl("https://github.com/zophiana/rbbk-text-editor/pulls");
+            }}
+            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded w-full text-left"
+            aria-label="Mitwirken auf GitHub"
           >
             <span>Mitwirken</span>
             <span className="text-gray-400">↗</span>
-          </a>
+          </button>
         </div>
       </div>
     </div>
