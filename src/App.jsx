@@ -225,11 +225,8 @@ function App() {
             return;
           case "f":
             event.preventDefault();
-            setShowFind(true);
-            setTimeout(() => {
-              findInputRef.current?.focus();
-              findInputRef.current?.select();
-            }, 0);
+            focusFindInput();
+            setActiveMenu(null);
             return;
           case "i":
             event.preventDefault();
@@ -279,11 +276,17 @@ function App() {
     }
 
     setMatchPositions(positions);
-    // If there are matches and current selection is outside, reset to first
-    setActiveMatchIndex((prev) => {
-      if (positions.length === 0) return 0;
-      return Math.min(prev, Math.max(positions.length - 1, 0));
-    });
+    // Choose initial active match based on current cursor position:
+    // Start searching from the caret absolute position (0-based). If a match
+    // exists at or after the caret, select that one; otherwise default to first
+    // match. This makes the search begin from the current cursor location.
+    if (positions.length === 0) {
+      setActiveMatchIndex(0);
+    } else {
+      const caretPos = (cursorPosition?.absoluteChar ?? 1) - 1;
+      const idxFromCaret = positions.findIndex((p) => p >= caretPos);
+      setActiveMatchIndex(idxFromCaret >= 0 ? idxFromCaret : 0);
+    }
   }, [fileContent, findQuery, ignoreCase]);
 
   // When active match changes, select it in the textarea
@@ -366,6 +369,20 @@ function App() {
     if (!container) return;
     const el = container.querySelector(`[data-match-index=\"${matchIndex}\"]`);
     if (!el) return;
+    // Prefer native smooth scrolling when available. This will scroll the
+    // editable container so the active match is centered vertically/horizontally.
+    try {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+      return;
+    } catch (_) {
+      // Fall through to manual scrolling below if scrollIntoView with options
+      // isn't supported in the environment.
+    }
+
     const cRect = container.getBoundingClientRect();
     const eRect = el.getBoundingClientRect();
     // Compute deltas relative to container scrollable area
@@ -390,14 +407,17 @@ function App() {
 
   const handleFindNext = () => {
     if (matchPositions.length === 0) return;
-    setActiveMatchIndex((prev) => (prev + 1) % matchPositions.length);
+    const nextIndex = (activeMatchIndex + 1) % matchPositions.length;
+    setActiveMatchIndex(nextIndex);
+    scrollMatchIntoView(nextIndex);
   };
 
   const handleFindPrev = () => {
     if (matchPositions.length === 0) return;
-    setActiveMatchIndex(
-      (prev) => (prev - 1 + matchPositions.length) % matchPositions.length
-    );
+    const prevIndex =
+      (activeMatchIndex - 1 + matchPositions.length) % matchPositions.length;
+    setActiveMatchIndex(prevIndex);
+    scrollMatchIntoView(prevIndex);
   };
 
   // Render content into the contentEditable with highlighted matches
@@ -428,7 +448,7 @@ function App() {
         }
         const span = document.createElement("span");
         span.className =
-          i === activeMatchIndex ? "bg-orange-300" : "bg-yellow-200";
+          i === activeMatchIndex ? "bg-blue-200" : "bg-yellow-200";
         span.dataset.matchIndex = String(i);
         span.textContent = fileContent.slice(start, end);
         frag.appendChild(span);
@@ -449,20 +469,6 @@ function App() {
   useEffect(() => {
     refreshEditable(document.activeElement === editableDivRef.current);
   }, [fileContent, findQuery, matchPositions, activeMatchIndex]);
-
-  // Move selection to active match if the editor is focused; always ensure visibility
-  useEffect(() => {
-    if (!findQuery || matchPositions.length === 0) return;
-    const start = matchPositions[activeMatchIndex] ?? matchPositions[0];
-    const end = start + findQuery.length;
-    try {
-      if (document.activeElement === editableDivRef.current) {
-        setSelectionRangeCE(start, end);
-      }
-      // Ensure the active match is visible even when unfocused
-      requestAnimationFrame(() => scrollMatchIntoView(activeMatchIndex));
-    } catch (_) {}
-  }, [activeMatchIndex, matchPositions, findQuery]);
 
   useEffect(() => {
     let unlisten;
@@ -611,7 +617,7 @@ function App() {
             ref={editableDivRef}
             contentEditable="true"
             spellCheck="false"
-            className="w-full h-full min-h-0 whitespace-pre font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
+            className="leading-none p-2 w-full h-full min-h-0 whitespace-pre font-mono outline-none overflow-auto bg-[image:linear-gradient(90deg,transparent_0%,transparent_60ch,#ccc_60ch,#ccc_calc(60ch+1px),transparent_calc(60ch+1px))] bg-[length:100%_100%] bg-no-repeat"
             onInput={(e) => {
               const target = e.target;
               const rawText = target.innerText;
@@ -669,6 +675,30 @@ function App() {
                 setFindQuery(e.target.value);
                 setActiveMatchIndex(0);
               }}
+              onKeyDown={(e) => {
+                // Enter is handled on the container; handle Escape here to
+                // focus the editable area and select the active match.
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  // If there are matches, select the active one; otherwise
+                  // just focus the editable area.
+                  if (matchPositions.length > 0) {
+                    // activeMatchIndex is always non-negative; clamp to last index
+                    const idx = Math.min(
+                      activeMatchIndex,
+                      matchPositions.length - 1
+                    );
+                    const start = matchPositions[idx];
+                    const end = start + findQuery.length;
+                    // Focus the contentEditable and set selection
+                    editableDivRef.current?.focus();
+                    setSelectionRangeCE(start, end);
+                    scrollMatchIntoView(idx);
+                  } else {
+                    editableDivRef.current?.focus();
+                  }
+                }
+              }}
               className="px-2 py-1 border border-stone-300 rounded outline-none focus:border-stone-500 flex-1"
             />
           </div>
@@ -703,6 +733,15 @@ function App() {
               </button>
             </div>
           </div>
+          {findQuery && matchPositions.length === 0 && (
+            <div
+              className="text-sm text-red-600 italic"
+              role="status"
+              aria-live="polite"
+            >
+              {`Keine Treffer für "${findQuery}"`}
+            </div>
+          )}
         </aside>
       </div>
 
