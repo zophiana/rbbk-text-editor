@@ -888,6 +888,122 @@ function App() {
               {`Keine Treffer für "${findQuery}"`}
             </div>
           )}
+          <div className="h-full overflow-hidden flex flex-col justify-center">
+            <svg
+              viewBox="0 0 64 64"
+              role="img"
+              id="svg11"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:svg="http://www.w3.org/2000/svg"
+            >
+              <defs id="defs11" />
+              <sodipodi:namedview
+                id="namedview11"
+                pagecolor="#ffffff"
+                bordercolor="#000000"
+                borderopacity="0.25"
+              />
+              <title id="title">Notepad with pencil icon</title>
+              <desc id="desc">
+                A notepad with horizontal lines and binder holes, with a pencil
+                diagonally across it. The pencil has a proper sharpened tip.
+              </desc>
+              <g transform="translate(4 6)" id="g8">
+                <rect
+                  x="0"
+                  y="4"
+                  width="42"
+                  height="50"
+                  rx="4"
+                  ry="4"
+                  fill="#fff"
+                  stroke="#2b2f33"
+                  stroke-width="2"
+                  id="rect1"
+                />
+                <rect
+                  x="0"
+                  y="0"
+                  width="42"
+                  height="8"
+                  rx="3"
+                  ry="3"
+                  fill="#2b2f33"
+                  id="rect2"
+                />
+                <g fill="#fff" opacity="0.95" id="g4">
+                  <circle cx="8" cy="4" r="1.2" id="circle2" />
+                  <circle cx="21" cy="4" r="1.2" id="circle3" />
+                  <circle cx="34" cy="4" r="1.2" id="circle4" />
+                </g>
+                <g
+                  stroke="#cbd5df"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  opacity="0.95"
+                  id="g7"
+                >
+                  <line x1="6" y1="16" x2="36" y2="16" id="line4" />
+                  <line x1="6" y1="24" x2="36" y2="24" id="line5" />
+                  <line x1="6" y1="32" x2="36" y2="32" id="line6" />
+                  <line x1="6" y1="40" x2="30" y2="40" id="line7" />
+                </g>
+              </g>
+              <g transform="translate(10 36) rotate(-28 20 0)" id="g11">
+                <rect
+                  x="0"
+                  y="-4.5"
+                  width="28"
+                  height="9"
+                  rx="2"
+                  ry="2"
+                  fill="#f6b26b"
+                  stroke="#2b2f33"
+                  stroke-width="1"
+                  id="rect8"
+                />
+                <rect
+                  x="25.532578"
+                  y="-4.4474225"
+                  width="7.4148445"
+                  height="8.894845"
+                  rx="2.4716148"
+                  ry="1.9766321"
+                  fill="#f48fb1"
+                  stroke="#2b2f33"
+                  stroke-width="1.10516"
+                  id="rect9"
+                />
+                <rect
+                  x="25"
+                  y="-4.5"
+                  width="3"
+                  height="9"
+                  rx="1"
+                  ry="1"
+                  fill="#c0c6cc"
+                  stroke="#2b2f33"
+                  stroke-width="1"
+                  id="rect10"
+                />
+                <polygon
+                  points="-4,0 0,4.5 0,-4.5 "
+                  fill="#e6c29f"
+                  stroke="#2b2f33"
+                  stroke-width="1"
+                  id="polygon10"
+                  transform="matrix(1.4914298,0,0,0.77728325,-0.01562003,0)"
+                />
+                <polygon
+                  points="-6,0 -4,1 -4,-1 "
+                  fill="#2b2f33"
+                  stroke="#2b2f33"
+                  stroke-width="0.8"
+                  id="polygon11"
+                />
+              </g>
+            </svg>
+          </div>
         </aside>
       </div>
 
